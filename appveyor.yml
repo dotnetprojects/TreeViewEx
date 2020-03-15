@@ -17,6 +17,9 @@ dotnet_csproj:
 
 configuration: Debug
 
+before_build:
+  - nuget restore
+  
 build:
   project: TreeViewEx.sln
 
