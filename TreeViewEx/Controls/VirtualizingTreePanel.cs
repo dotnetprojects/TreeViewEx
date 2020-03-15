@@ -11,7 +11,6 @@ using System.Collections.Specialized;
 using System.Collections.Generic;
 using System.Reflection;
 
-
 namespace System.Windows.Controls
 {
     class VirtualizingTreePanel : VirtualizingPanel, IScrollInfo

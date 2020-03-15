@@ -11,7 +11,10 @@ namespace System.Windows.Controls
 {
     #region
 
+    using System;
     using System.Collections.Generic;
+    using System.Windows;
+    using System.Windows.Controls;
     using System.Windows.Input;
     using System.Windows.Media;
 
@@ -24,12 +27,10 @@ namespace System.Windows.Controls
         private readonly IEnumerable<TreeViewExItem> items;
 
         private BorderSelectionAdorner border;
-
-        private bool isFirstMove;
-
-        private bool mouseDown;
-
-        private Point startPoint;
+                
+        private Point? selectPosition;
+        private MouseButton dragButton;
+        bool beginSelect = false;
 
         #endregion
 
@@ -47,63 +48,57 @@ namespace System.Windows.Controls
 
         internal override void OnMouseDown(MouseButtonEventArgs e)
         {
-            if (TreeView.SelectionMode != SelectionMode.Extended)
+            // begin click
+            if (!selectPosition.HasValue && !TreeView.IsVirtualizing) // TODO: Virtual Elements still don't work with Selection.
             {
-                return;
+                TreeViewExItem item = GetTreeViewItemUnderMouse(e.GetPosition(TreeView));
+                if (item != null)
+                {
+                    var contentPresenter = item.Template.FindName("content", item) as ContentPresenter;
+                    if (!contentPresenter.IsMouseOver)
+                    {
+                        selectPosition = GetMousePositionRelativeToContent();
+                        dragButton = e.ChangedButton;
+                    }
+                }
             }
-
-            if (Mouse.LeftButton == MouseButtonState.Released)
-            {
-                return;
-            }
-
-            mouseDown = true;
-            startPoint = GetMousePositionRelativeToContent();
-            isFirstMove = true;
         }
 
         internal override void OnMouseMove(MouseEventArgs e)
         {
-            HandleInput(e);
+            if (selectPosition.HasValue)
+            {            
+                if (!beginSelect)
+                {
+                    // detect select
+                    var dragDiff = selectPosition.Value - e.GetPosition(TreeView);
+                    if ((Math.Abs(dragDiff.X) > SystemParameters.MinimumHorizontalDragDistance || Math.Abs(dragDiff.Y) > SystemParameters.MinimumVerticalDragDistance))
+                    {
+                        // begin select
+                        border = new BorderSelectionAdorner(TreeView);
+                        beginSelect = true;
+                    }
+                }
+
+                if (beginSelect)
+                    HandleInput(e);
+            }
         }
 
         internal override void OnMouseUp(MouseButtonEventArgs e)
         {
-            if (isFirstMove) return;
-
-            if (startPoint == GetMousePositionRelativeToContent())
+            if (selectPosition.HasValue && e.ChangedButton == dragButton)
             {
-                bool overItem = false;
-                foreach (var item in items)
+                if (beginSelect)
                 {
-                    if (item.IsEditing) continue;
-                    Rect itemRect = GetPositionOf(item);
-                    if (itemRect.Contains(startPoint))
-                    {
-                        overItem = true;
-                        break;
-                    }
+                    border.Visibility = Visibility.Collapsed;
+                    border.Dispose();
+                    border = null;
+                    
+                    beginSelect = false;
                 }
 
-                if (!overItem)
-                {
-                    List<object> itemsToUnselect = new List<object>();
-                    foreach (var item in TreeView.SelectedItems)
-                    {
-                        itemsToUnselect.Add(item);
-                    }
-
-                    ((SelectionMultiple)TreeView.Selection).SelectByRectangle(new List<object>(), itemsToUnselect);
-                }
-            }
-
-            mouseDown = false;
-            if (border != null)
-            {
-                border.Visibility = Visibility.Collapsed;
-                border.Dispose();
-                border = null;
-                e.Handled = true;
+                selectPosition = null;
             }
         }
 
@@ -114,53 +109,27 @@ namespace System.Windows.Controls
 
         private void HandleInput(RoutedEventArgs e)
         {
-            if (mouseDown)
+            if (beginSelect)
             {
-                if (Mouse.LeftButton == MouseButtonState.Released)
-                {
-                    mouseDown = false;
-                    if (border != null)
-                    {
-                        border.Visibility = Visibility.Collapsed;
-                        border.Dispose();
-                    }
-
-                    return;
-                }
-
-                if (startPoint == GetMousePositionRelativeToContent()) return;
-
                 List<object> itemsToSelect = new List<object>();
                 List<object> itemsToUnSelect = new List<object>();
 
                 // if the mouse position or the start point is outside the window, we trim it inside
                 Point currentPoint = TrimPointToVisibleArea(GetMousePositionRelativeToContent());
-                Point trimmedStartPoint = TrimPointToVisibleArea(startPoint);
-
-                if (isFirstMove)
-                {
-                    isFirstMove = false;
-                    border = new BorderSelectionAdorner(TreeView);
-                }
-
+                Point trimmedStartPoint = TrimPointToVisibleArea(selectPosition.Value);
+                
                 Rect selectionRect = new Rect(currentPoint, trimmedStartPoint);
                 border.UpdatePosition(selectionRect);
-
-
-                if (isFirstMove)
+                
+                if (!SelectionMultiple.IsControlKeyDown)
                 {
-                    if (!SelectionMultiple.IsControlKeyDown)
+                    foreach (var item in TreeView.SelectedItems)
                     {
-                        foreach (var item in TreeView.SelectedItems)
-                        {
-                            var treeViewItem = TreeView.GetTreeViewItemFor(item);
-                            Rect itemRect = GetPositionOf(treeViewItem);
+                        var treeViewItem = TreeView.GetTreeViewItemFor(item);
+                        Rect itemRect = GetPositionOf(treeViewItem);
 
-                            if (!selectionRect.IntersectsWith(itemRect))
-                            {
-                                itemsToUnSelect.Add(item);
-                            }
-                        }
+                        if (!selectionRect.IntersectsWith(itemRect))
+                            itemsToUnSelect.Add(item);
                     }
                 }
 
@@ -175,29 +144,16 @@ namespace System.Windows.Controls
 
                     if (selectionRect.IntersectsWith(itemRect))
                     {
-                        if (isFirstMove)
-                        {
+                        if (!TreeView.SelectedItems.Contains(item.DataContext))
                             itemsToSelect.Add(item.DataContext);
-                        }
-                        else
-                        {
-                            if (!TreeView.SelectedItems.Contains(item.DataContext))
-                            {
-                                itemsToSelect.Add(item.DataContext);
-                            }
-                        }
                     }
                     else
                     {
                         if (!SelectionMultiple.IsControlKeyDown && TreeView.SelectedItems.Contains(item.DataContext))
-                        {
                             itemsToUnSelect.Add(item.DataContext);
-                        }
                     }
                 }
-
                 ((SelectionMultiple)TreeView.Selection).SelectByRectangle(itemsToSelect, itemsToUnSelect);
-                e.Handled = true;
             }
         }
 

@@ -1,11 +1,9 @@
 ﻿namespace System.Windows.Controls
 {
-    using System;
-    using System.Collections;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Windows;
     using System.Windows.Input;
+    using System.Windows.Media;
 
     /// <summary>
     /// Logic for the multiple selection
@@ -77,7 +75,7 @@
         private bool ModifySelection(object itemToSelect, List<object> itemsToUnselect)
         {
             List<object> itemsToSelect = new List<object>();
-            itemsToSelect.Add(itemToSelect);
+            if (itemsToSelect != null) itemsToSelect.Add(itemToSelect);
 
             if (itemsToUnselect == null) itemsToUnselect = new List<object>();
 
@@ -89,7 +87,7 @@
             if (itemsToSelect == null) itemsToSelect = new List<object>();
 
             List<object> itemsToUnselect = new List<object>();
-            itemsToUnselect.Add(itemToUnselect);
+            if (itemToUnselect != null) itemsToUnselect.Add(itemToUnselect);
 
             return ModifySelection(itemsToSelect, itemsToUnselect);
         }
@@ -192,13 +190,14 @@
 
         private void SelectSingleItem(TreeViewExItem item)
         {
+
             // selection with SHIFT is not working in virtualized mode. Thats because the Items are not visible.
             // Therefor the children cannot be found/selected.
-            if (TreeView.SelectionMode != SelectionMode.Single && IsShiftKeyDown && treeViewEx.SelectedItems.Count > 0 && !treeViewEx.IsVirtualizing)
+            if (IsShiftKeyDown && treeViewEx.SelectedItems.Count > 0 && !treeViewEx.IsVirtualizing)
             {
                 SelectWithShift(item);
             }
-            else if (TreeView.SelectionMode != SelectionMode.Single && IsControlKeyDown)
+            else if (IsControlKeyDown)
             {
                 ToggleItem(item);
             }
@@ -216,11 +215,6 @@
         #endregion
 
         #region Overrides InputSubscriberBase
-
-        private TreeViewExItem selectItem = null;
-        private Point selectPosition;
-        private MouseButton selectButton;
-
         internal override void OnMouseDown(MouseButtonEventArgs e)
         {
             base.OnMouseDown(e);
@@ -230,53 +224,9 @@
             if (e.ChangedButton != MouseButton.Left && !(e.ChangedButton == MouseButton.Right && item.ContextMenu != null)) return;            
             if (item.IsEditing) return;
 
-            // ToggleItem or SelectWithShift
-            if (IsControlKeyDown || (IsShiftKeyDown))
-            {
-                SelectSingleItem(item);
-                FocusHelper.Focus(item);
-                return;
-            }
+            SelectSingleItem(item);
 
-            // begin click
-            if (selectItem == null)
-            {
-                selectItem = item;
-                selectPosition = e.GetPosition(TreeView);
-                selectButton = e.ChangedButton;
-            }
-        }
-
-        internal override void OnMouseMove(MouseEventArgs e)
-        {
-            base.OnMouseMove(e);
-
-            if (selectItem != null)
-            {
-                // detect drag
-                var dragDiff = selectPosition - e.GetPosition(TreeView);
-                if ((Math.Abs(dragDiff.X) > SystemParameters.MinimumHorizontalDragDistance || Math.Abs(dragDiff.Y) > SystemParameters.MinimumVerticalDragDistance))
-                {
-                    // abort click
-                    selectItem = null;
-                }
-            }
-        }
-
-        internal override void OnMouseUp(MouseButtonEventArgs e)
-        {
-            base.OnMouseUp(e);
-
-            // click
-            if (selectItem != null && e.ChangedButton == selectButton)
-            {
-                // select item
-                SelectSingleItem(selectItem);
-                FocusHelper.Focus(selectItem);
-
-                // end click
-                selectItem = null;
-            }
+            FocusHelper.Focus(item);
         }
 
         private void SelectWithShift(TreeViewExItem item)
@@ -288,26 +238,22 @@
             }
             else
             {
-                // Get the first item in the SelectedItems that is also bound to the Tree.
-                firstSelectedItem = treeViewEx.SelectedItems.Cast<object>().FirstOrDefault((x) => { return treeViewEx.GetTreeViewItemFor(x) != null; });
+                if (treeViewEx.SelectedItems.Count > 0)
+                {
+                    firstSelectedItem = treeViewEx.SelectedItems[0];
+                }
+                else
+                {
+                    firstSelectedItem = null;
+                }
             }
 
-            if (firstSelectedItem != null)
-            {
-                TreeViewExItem shiftRootItem = treeViewEx.GetTreeViewItemsFor(new List<object> { firstSelectedItem }).First();
+            TreeViewExItem shiftRootItem = treeViewEx.GetTreeViewItemsFor(new List<object> { firstSelectedItem }).First();
 
-                List<object> itemsToSelect = treeViewEx.GetNodesToSelectBetween(shiftRootItem, item).Select(x => x.DataContext).ToList();
-                List<object> itemsToUnSelect = treeViewEx.SelectedItems.Cast<object>().ToList();
+            List<object> itemsToSelect = treeViewEx.GetNodesToSelectBetween(shiftRootItem, item).Select(x => x.DataContext).ToList();
+            List<object> itemsToUnSelect = treeViewEx.SelectedItems.Cast<object>().ToList();
 
-                ModifySelection(itemsToSelect, itemsToUnSelect);
-            }
-            else
-            {   // Fall-back to sigle selection
-                List<object> itemsToUnSelect = treeViewEx.SelectedItems.Cast<object>().ToList();
-                if (itemsToUnSelect.Contains(item.DataContext))
-                    itemsToUnSelect.Remove(item.DataContext);
-                ModifySelection(item.DataContext, itemsToUnSelect);
-            }
+            ModifySelection(itemsToSelect, itemsToUnSelect);
         }
         #endregion
 
@@ -419,15 +365,14 @@
             FocusHelper.Focus(item);
         }
 
-        public void ClearObsoleteItems(IEnumerable items)
+        public void ClearObsoleteItems(IEnumerable<object> items)
         {
-            foreach (var itemToUnSelect in items)
+            foreach (object itemToUnSelect in items)
             {
-                if (itemToUnSelect == lastShiftRoot)
-                    lastShiftRoot = null;
-                if (!treeViewEx.SelectedItems.IsReadOnly && treeViewEx.SelectedItems.Contains(itemToUnSelect))
-                    treeViewEx.SelectedItems.Remove(itemToUnSelect);
+                if (treeViewEx.SelectedItems.Contains(itemToUnSelect)) treeViewEx.SelectedItems.Remove(itemToUnSelect);
             }
+
+            if (items.Contains(lastShiftRoot)) lastShiftRoot = null;
         }
 
         #endregion

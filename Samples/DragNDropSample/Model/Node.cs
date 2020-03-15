@@ -5,7 +5,6 @@
     using System.Collections.ObjectModel;
     using System.Windows.Controls;
     using System.Windows.Input;
-    using System.Windows.Controls.DragNDrop;
     using System.Linq;
     #endregion
 

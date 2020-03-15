@@ -6,13 +6,14 @@
 	using System.Windows;
 	using System.Windows.Threading;
 	using System.Diagnostics;
+    using System.Windows.Controls;
 
-	#endregion
+    #endregion
 
-	/// <summary>
-	/// Helper methods to focus.
-	/// </summary>
-	public static class FocusHelper
+    /// <summary>
+    /// Helper methods to focus.
+    /// </summary>
+    public static class FocusHelper
 	{
 		#region Public Methods
 

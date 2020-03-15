@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Windows;
+using System.Windows.Media;
 
 namespace System.Windows.Controls.DragNDrop
 {
@@ -11,7 +13,7 @@ namespace System.Windows.Controls.DragNDrop
 
         public Point Position { get; set; }
 
-        public Media.Brush InsertionMarkerBrush { get; set; }
+        public Brush InsertionMarkerBrush { get; set; }
 
         public TreeViewExItem Item { get; set; }
     }

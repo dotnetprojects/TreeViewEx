@@ -1,6 +1,8 @@
 ﻿namespace System.Windows.Controls
 {
     using System.Diagnostics;
+    using System.Windows;
+    using System.Windows.Controls;
     using System.Windows.Controls.DragNDrop;
     using System.Windows.Documents;
     using System.Windows.Input;

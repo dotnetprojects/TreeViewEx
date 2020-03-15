@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -19,7 +20,7 @@ namespace System.Windows.Controls
                 this.methodName = methodName;
             }
 
-            public object Convert(object value, Type targetType, object parameter, Globalization.CultureInfo culture)
+            public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
             {
                 // I do use reflection for this. Another way would be to force the viewModel to implement sth like
                 // IDragSource and IDropTarget. Then I could cast and return the method. Would probably be more
@@ -67,7 +68,7 @@ namespace System.Windows.Controls
                 return null;
             }
 
-            public object ConvertBack(object value, Type targetType, object parameter, Globalization.CultureInfo culture)
+            public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
             {
                 throw new NotImplementedException();
             }

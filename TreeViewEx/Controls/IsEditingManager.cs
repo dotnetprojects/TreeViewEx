@@ -16,7 +16,7 @@ namespace System.Windows.Controls
             this.treeview = treeview;
         }
 
-        internal override void OnMouseDown(Input.MouseButtonEventArgs e)
+        internal override void OnMouseDown(MouseButtonEventArgs e)
         {
             base.OnMouseDown(e);
             StopEditing();

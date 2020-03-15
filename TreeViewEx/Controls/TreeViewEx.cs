@@ -14,10 +14,13 @@ namespace System.Windows.Controls
     using System.Collections.Specialized;
     using System.ComponentModel;
     using System.Linq;
+    using System.Windows;
     using System.Windows.Automation.Peers;
-    using System.Windows.Controls.DragNDrop;
     using System.Windows.Input;
     using System.Windows.Media;
+    using System.Windows.Controls;
+    using System;
+    using System.Windows.Controls.DragNDrop;
 
     #endregion
 
@@ -185,7 +188,7 @@ namespace System.Windows.Controls
             get { return (ICommand)GetValue(DropCommandProperty); }
             set { SetValue(DropCommandProperty, value); }
         }
-
+        
         public DataTemplate InsertTemplate
         {
             get
@@ -598,7 +601,7 @@ namespace System.Windows.Controls
             {
                 case NotifyCollectionChangedAction.Remove:
                     if (Selection != null) // happens during unload
-                        Selection.ClearObsoleteItems(e.OldItems.Cast<object>());
+                        Selection.ClearObsoleteItems(e.OldItems);
                     break;
 
                 case NotifyCollectionChangedAction.Reset:

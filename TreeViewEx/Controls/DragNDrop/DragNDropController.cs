@@ -4,7 +4,10 @@ using System.Windows.Input;
 
 namespace System.Windows.Controls.DragNDrop
 {
+    using System;
     using System.Linq;
+    using System.Windows;
+    using System.Windows.Controls;
     using System.Windows.Documents;
     using System.Windows.Media;
     using System.Windows.Threading;
@@ -13,10 +16,11 @@ namespace System.Windows.Controls.DragNDrop
     {
         private AutoScroller autoScroller;
 
-        private List<TreeViewExItem> draggableItems;
-        
-        Stopwatch stopWatch;
+        private Point? dragPosition;
+        private MouseButton dragButton;
 
+        Stopwatch stopWatch;
+        
         InsertAdorner insertAdorner;
 
         const int dragAreaSize = 5;
@@ -53,19 +57,18 @@ namespace System.Windows.Controls.DragNDrop
         }
 
         public bool Enabled { get; set; }
-        private bool CanDrag { get { return draggableItems != null && draggableItems.Count > 0; } }
+
         internal override void OnMouseDown(MouseButtonEventArgs e)
         {
             base.OnMouseDown(e);
             if (CheckOverScrollBar(e.GetPosition(TreeView))) return;
 
-            // initalize draggable items on click. Doing that in mouse move results in drag operations,
-            // when the border is visible.
-            draggableItems = GetDraggableItems(e.GetPosition(TreeView));
-            //if (CanDrag)
-            //{
-                //e.Handled = true;
-            //}
+            // initalize draggable items on click. Doing that in mouse move results in drag operations, when the border is visible.
+            if (!dragPosition.HasValue)
+            {
+                dragPosition = e.GetPosition(TreeView);
+                dragButton = e.ChangedButton;
+            }
         }
 
         internal override void OnMouseUp(MouseButtonEventArgs e)
@@ -73,31 +76,43 @@ namespace System.Windows.Controls.DragNDrop
             base.OnMouseUp(e);
 
             // otherwise drops are triggered even if no node was selected in drop
-            draggableItems = null;
+            if (dragPosition.HasValue && e.ChangedButton == dragButton)
+            {
+                dragPosition = null;
+            }
         }
         internal override void OnMouseMove(MouseEventArgs e)
         {
-            if (!IsLeftButtonDown ||CheckOverScrollBar(e.GetPosition(TreeView)))
+            if (CheckOverScrollBar(e.GetPosition(TreeView)))
             {
                 CleanUpAdorners();
-
                 return;
             }
 
-            if (!CanDrag) return;
+            if (dragPosition.HasValue)
+            {
+                var dragDiff = dragPosition.Value - e.GetPosition(TreeView);
+                if (TreeView.DragCommand != null && (Math.Abs(dragDiff.X) > SystemParameters.MinimumHorizontalDragDistance || Math.Abs(dragDiff.Y) > SystemParameters.MinimumVerticalDragDistance))
+                {
+                    // begin Drag
+                    var draggableItems = GetDraggableItems(dragPosition.Value);
+                    var canDragParameters = new CanDragParameters(draggableItems, dragPosition.Value, dragButton);
+                    dragPosition = null;
 
-            DragContent dragData = new DragContent();
-            foreach (var item in draggableItems)
-            {                
-                DragParameters dragParameters = new DragParameters(item);
-                TreeView.DragCommand.Execute(dragParameters);
-                dragData.Add(dragParameters.DraggedObject);
+                    var canDrag = TreeView.DragCommand.CanExecute(canDragParameters);
+
+                    if (canDrag && draggableItems.Count > 0)
+                    {
+                        var dragParameters = new DragParameters(draggableItems, canDragParameters.Position, canDragParameters.Button);
+                        TreeView.DragCommand.Execute(dragParameters);
+
+                        DragStart();
+                        DragDrop.DoDragDrop(TreeView, dragParameters.Data, dragParameters.AllowedEffects);
+                        DragEnd();
+                        e.Handled = true;
+                    }
+                }
             }
-
-            DragStart(dragData);
-            DragDo(dragData);
-            DragEnd();
-            e.Handled = true;
         }
 
         private void CleanUpAdorners()
@@ -145,13 +160,8 @@ namespace System.Windows.Controls.DragNDrop
             return true;
         }
 
-        private void DragDo(DragContent dragData)
-        {
-            DragDrop.DoDragDrop(TreeView, new DataObject(dragData), DragDropEffects.All);
-        }
-
         private void DragEnd()
-        {   
+        {
             autoScroller.IsEnabled = false;
 
             // Remove the drag adorner from the adorner layer.
@@ -170,7 +180,7 @@ namespace System.Windows.Controls.DragNDrop
             }
         }
 
-        private void DragStart(DragContent dragData)
+        private void DragStart()
         {
             autoScroller.IsEnabled = true;
         }
@@ -262,7 +272,7 @@ namespace System.Windows.Controls.DragNDrop
         TreeViewExItem itemMouseIsOver;
         void OnDragOver(object sender, DragEventArgs e)
         {
-            e.Effects = DragDropEffects.None;
+            e.Effects = DragDropEffects.None;           
             e.Handled = true;
 
             // drag over is the only event which returns the position
@@ -340,35 +350,21 @@ namespace System.Windows.Controls.DragNDrop
 
         private List<TreeViewExItem> GetDraggableItems(Point mousePositionRelativeToTree)
         {
-            if (TreeView.DragCommand == null) return new List<TreeViewExItem>();
-            
-            List<TreeViewExItem> items = TreeView.GetTreeViewItemsFor(TreeView.SelectedItems).ToList();
             TreeViewExItem itemUnderMouse = GetTreeViewItemUnderMouse(mousePositionRelativeToTree);
             if(itemUnderMouse == null) return new List<TreeViewExItem>();
-                
-            if (items.Contains(itemUnderMouse))
-            {
-                foreach (var item in items)
-                {
-                    if (!TreeView.DragCommand.CanExecute(new DragParameters(item)))
-                    {
-                        // if one item is not draggable, nothing can be dragged
-                        return new List<TreeViewExItem>();
-                    }
-                }
+            
+            List<TreeViewExItem> items = TreeView.GetTreeViewItemsFor(TreeView.SelectedItems).ToList();
 
-                return items;
+            if (!items.Contains(itemUnderMouse))
+            {
+                //mouse is not over an selected item. We have to check if it is over the content. In this case we have to select and start drag n drop.
+                items = new List<TreeViewExItem>();
+                var contentPresenter = itemUnderMouse.Template.FindName("content", itemUnderMouse) as ContentPresenter;
+                if (contentPresenter.IsMouseOver)
+                    items.Add(itemUnderMouse);
             }
 
-            //mouse is not over an selected item. We have to check if it is over the content. In this case we have to select and start drag n drop.
-            var contentPresenter = itemUnderMouse.Template.FindName("content", itemUnderMouse) as ContentPresenter;
-            if (contentPresenter.IsMouseOver)
-            {
-                if(TreeView.DragCommand.CanExecute(new DragParameters(itemUnderMouse)))
-                    return new List<TreeViewExItem> { itemUnderMouse };
-            }
-
-            return new List<TreeViewExItem>();
+            return items;
         }
 
         public void Dispose()

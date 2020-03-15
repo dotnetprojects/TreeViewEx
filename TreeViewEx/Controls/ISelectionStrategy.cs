@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
 namespace System.Windows.Controls
 {
     /// <summary>
@@ -20,6 +20,6 @@ namespace System.Windows.Controls
 
         void SelectLast();
 
-        void ClearObsoleteItems(IEnumerable<object> items);
+        void ClearObsoleteItems(IEnumerable items);
     }
 }

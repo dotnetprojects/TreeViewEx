@@ -8,12 +8,15 @@ namespace System.Windows.Controls
 {
     #region
 
+    using System;
     using System.Collections;
     using System.Collections.Generic;
     using System.Collections.Specialized;
     using System.ComponentModel;
     using System.Linq;
+    using System.Windows;
     using System.Windows.Automation.Peers;
+    using System.Windows.Controls;
     using System.Windows.Data;
     using System.Windows.Input;
     using System.Windows.Markup;
@@ -159,7 +162,7 @@ namespace System.Windows.Controls
         {
             get
             {
-                if (Visibility != Windows.Visibility.Visible) return false;
+                if (Visibility != Visibility.Visible) return false;
                 TreeViewExItem currentItem = ParentTreeViewItem;
                 while (currentItem != null)
                 {
@@ -256,7 +259,7 @@ namespace System.Windows.Controls
             {
                 case NotifyCollectionChangedAction.Remove:
                     if (ParentTreeView != null && ParentTreeView.Selection != null) // happens during unload or when removing if never realized
-                        ParentTreeView.Selection.ClearObsoleteItems(e.OldItems.Cast<object>());
+                        ParentTreeView.Selection.ClearObsoleteItems(e.OldItems);
                     break;
 
                 case NotifyCollectionChangedAction.Reset:

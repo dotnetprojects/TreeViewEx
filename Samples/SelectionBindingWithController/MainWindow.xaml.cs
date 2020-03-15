@@ -64,7 +64,7 @@
             
         }
         
-        void treeViewEx_OnSelecting(object sender, System.Windows.Controls.SelectionChangedCancelEventArgs e)
+        void treeViewEx_OnSelecting(object sender, SelectionChangedCancelEventArgs e)
         {
             TreeViewEx treeViewEx = (TreeViewEx)sender;
             CommandController controller = viewModel.Controller;
