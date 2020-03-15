@@ -1,34 +1,28 @@
-version: 4.0.{build}
+version: 5.0.{build}
 
 branches:
   only:
     - master
 
-assembly_info:
+image: Visual Studio 2019
+
+dotnet_csproj:
   patch: true
-  file: AssemblyInfo.*
-  assembly_version: "{version}"
-  assembly_file_version: "{version}"
-  assembly_informational_version: "{version}"
+  file: '**\*.csproj'
+  version: '{version}'
+  package_version: '{version}'
+  assembly_version: '{version}'
+  file_version: '{version}'
+  informational_version: '{version}'
 
 configuration: Debug
 
-#before_build:
-#  - nuget restore
-  
 build:
   project: TreeViewEx.sln
-
-after_build:
-  - ps: .\nuget\pack.ps1
 
 test: off
 
 artifacts:
-  - path: TreeViewEx\bin\Debug\DotNetProjects.TreeViewEx.dll
-    name: DotNetProjects.TreeViewEx.dll
-  - path: TreeViewEx\bin\Debug\DotNetProjects.TreeViewEx.pdb
-    name: DotNetProjects.TreeViewEx.pdb
   - path: '**\DotNetProjects.*.nupkg'
 
 #uncomment to publish to NuGet
