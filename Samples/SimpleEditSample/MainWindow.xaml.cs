@@ -1,5 +1,6 @@
 ﻿namespace W7StyleSample
 {
+    using TreeViewEx.SimpleSample.ViewModel;
     #region
 
     using W7StyleSample.Model;
@@ -15,37 +16,29 @@
 
         public MainWindow()
         {
-            var firstNode = new Node { Name = "element" };
-            var first1 = new Node { Name = "element1" };
-            var first2 = new Node { Name = "element2" };
-            var first11 = new Node { Name = "element11" };
-            var first12 = new Node { Name = "element12" };
-            var first13 = new Node { Name = "element13", IsExpandedValue = false };
-            var first14 = new Node { Name = "element14", IsExpandedValue = false };
-            var first15 = new Node { Name = "element15" };
-            var first131 = new Node { Name = "element131" };
-            var first132 = new Node { Name = "element132" };
-
-            for (int i = 1; i <= 50; i++)
-            {
-                first14.Children.Add(new Node { Name = "element14_" + i });
-            }
-
-            firstNode.Children.Add(first1);
-            firstNode.Children.Add(first2);
-            first1.Children.Add(first11);
-            first1.Children.Add(first12);
-            first1.Children.Add(first13);
-            first1.Children.Add(first14);
-            first1.Children.Add(first15);
-            first13.Children.Add(first131);
-            first13.Children.Add(first132);
-
-            DataContext = firstNode;
+            DataContext = new MainWindowViewModel();
 
             InitializeComponent();
         }
 
         #endregion
+
+        private void TreeViewExItem_OnEditing(object sender, System.Windows.RoutedEventArgs e)
+        {
+            var tvei = (System.Windows.Controls.TreeViewExItem)sender;
+            Node nodeContext = (Node)tvei.DataContext;
+            var viewModel = (MainWindowViewModel)DataContext;
+            viewModel.EditedText = $"{nodeContext.Name} is being edited.";
+            e.Handled = true;
+        }
+
+        private void TreeViewExItem_OnEdited(object sender, System.Windows.RoutedEventArgs e)
+        {
+            var tvei = (System.Windows.Controls.TreeViewExItem)sender;
+            Node nodeContext = (Node)tvei.DataContext;
+            var viewModel = (MainWindowViewModel)DataContext;
+            viewModel.EditedText = $"{nodeContext.Name} was edited.";
+            e.Handled = true;
+        }
     }
 }

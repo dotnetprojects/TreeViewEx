@@ -4,12 +4,15 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" 
     xmlns:Controls="clr-namespace:System.Windows.Controls;assembly=DotNetProjects.TreeViewEx" 
     xmlns:Model="clr-namespace:W7StyleSample.Model" 
-    Title="MainWindow" Height="350" Width="261"
+    Title="MainWindow" Height="350" Width="521"
     AutomationProperties.Name="TestApp2Window" >
     <Window.Resources>
 		<Style TargetType="Controls:TreeViewExItem">
+            <EventSetter Event="OnEditing" Handler="TreeViewExItem_OnEditing" />
+            <EventSetter Event="OnEdited" Handler="TreeViewExItem_OnEdited" />
             <Setter Property="IsExpanded" Value="{Binding IsExpandedValue}"/>
             <Setter Property="IsEditable" Value="True" />
+            <Setter Property="IsEditing" Value="{Binding IsEditingValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
             <Setter Property="TemplateEdit">
                 <Setter.Value>
                     <DataTemplate>
@@ -19,15 +22,26 @@
             </Setter>
         </Style>
 	</Window.Resources>
-    <DockPanel>
-        <Controls:TreeViewEx
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="261" />
+            <ColumnDefinition Width="260" />
+        </Grid.ColumnDefinitions>
+        <DockPanel Grid.Column="0">
+            <Controls:TreeViewEx
          AutomationProperties.Name="TestApp2Tree"
-         ItemsSource="{Binding Children}">
-            <Controls:TreeViewEx.ItemTemplate>
-                <HierarchicalDataTemplate ItemsSource="{Binding Children}" DataType="{x:Type Model:Node}">
-                    <TextBlock Text="{Binding}"/>
-                </HierarchicalDataTemplate>
-            </Controls:TreeViewEx.ItemTemplate>
-        </Controls:TreeViewEx>
-    </DockPanel>
+         SelectedItems="{Binding SelectedItems}"
+         ItemsSource="{Binding FirstNode.Children}">
+                <Controls:TreeViewEx.ItemTemplate>
+                    <HierarchicalDataTemplate ItemsSource="{Binding Children}" DataType="{x:Type Model:Node}">
+                        <TextBlock Text="{Binding}"/>
+                    </HierarchicalDataTemplate>
+                </Controls:TreeViewEx.ItemTemplate>
+            </Controls:TreeViewEx>
+        </DockPanel>
+        <StackPanel Grid.Column="1">
+            <Button VerticalAlignment="Top" Content="Click me to edit selected item" Command="{Binding IsEditingCommand}" />
+            <TextBlock Margin="5 10 0 0" Text="{Binding EditedText, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
+        </StackPanel>
+    </Grid>
 </Window>
