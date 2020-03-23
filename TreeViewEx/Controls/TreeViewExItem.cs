@@ -57,7 +57,25 @@ namespace System.Windows.Controls
         public static readonly DependencyProperty IndentationProperty =
             DependencyProperty.Register("Indentation", typeof(double), typeof(TreeViewExItem), new PropertyMetadata(10.0));
 
+        public static readonly RoutedEvent OnEditingEvent = EventManager.RegisterRoutedEvent(
+        "OnEditing", RoutingStrategy.Bubble, typeof(RoutedEventHandler), typeof(TreeViewExItem));
 
+        // Provide CLR accessors for the event
+        public event RoutedEventHandler OnEditing
+        {
+            add { AddHandler(OnEditingEvent, value); }
+            remove { RemoveHandler(OnEditingEvent, value); }
+        }
+
+        public static readonly RoutedEvent OnEditedEvent = EventManager.RegisterRoutedEvent(
+        "OnEdited", RoutingStrategy.Bubble, typeof(RoutedEventHandler), typeof(TreeViewExItem));
+
+        // Provide CLR accessors for the event
+        public event RoutedEventHandler OnEdited
+        {
+            add { AddHandler(OnEditedEvent, value); }
+            remove { RemoveHandler(OnEditedEvent, value); }
+        }
         #endregion
 
         // Using a DependencyProperty as the backing store for Offset.  This enables animation, styling, binding, etc...
@@ -119,11 +137,12 @@ namespace System.Windows.Controls
                 return (bool)GetValue(IsEditingProperty);
             }
 
-            internal set
+            set
             {
                 SetValue(IsEditingProperty, value);
             }
         }
+        internal bool IsEditingCallbackEnabled { get; set; } = true;
 
         public double Indentation
         {
@@ -275,9 +294,24 @@ namespace System.Windows.Controls
 
         private static void OnIsEditingChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            if (d is TreeViewEx || d is TreeViewExItem) return;
+            var item = d as TreeViewExItem;
+            if (item == null)
+                return;
 
-            throw new InvalidOperationException("IsEditing can only be set internally");
+            if (item.IsEditingCallbackEnabled)
+            {
+                if ((bool)e.NewValue == true)
+                    item.StartEditing();
+                else
+                {
+                    item.StopEditing();
+                }
+            }
+
+            //if (d is TreeViewEx || d is TreeViewExItem)
+            //    return;
+
+            //throw new InvalidOperationException("IsEditing can only be set internally");
         }
 
         /// <summary>
@@ -394,8 +428,9 @@ namespace System.Windows.Controls
 
         private bool StartEditing()
         {
-            if ((TemplateEdit != null || TemplateSelectorEdit != null) && IsFocused && IsEditable)
+            if ((TemplateEdit != null || TemplateSelectorEdit != null) && IsEditable)
             {
+                RaiseEvent(new RoutedEventArgs(OnEditingEvent));
                 ParentTreeView.IsEditingManager.StartEditing(this);
                 return true;
             }
@@ -467,7 +502,12 @@ namespace System.Windows.Controls
 
         private void StopEditing()
         {
-            ParentTreeView.IsEditingManager.StopEditing();
+            ParentTreeView.IsEditingManager.StopEditing(true);
+        }
+
+        internal void RaiseOnEdited()
+        {
+            RaiseEvent(new RoutedEventArgs(OnEditedEvent));
         }
 
         #endregion

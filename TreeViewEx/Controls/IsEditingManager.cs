@@ -19,23 +19,29 @@ namespace System.Windows.Controls
         internal override void OnMouseDown(MouseButtonEventArgs e)
         {
             base.OnMouseDown(e);
-            StopEditing();
+            StopEditing(true);
         }
 
         public void StartEditing(TreeViewExItem item)
         {
-            StopEditing();
+            StopEditing(false);
             editedItem = item;
+            editedItem.IsEditingCallbackEnabled = false;
             editedItem.IsEditing = true;
+            editedItem.IsEditingCallbackEnabled = true;
         }
 
-        internal void StopEditing()
+        internal void StopEditing(bool raiseEvent)
         {
             if (editedItem == null) return;
 
             Keyboard.Focus(editedItem);
+            editedItem.IsEditingCallbackEnabled = false;
             editedItem.IsEditing = false;
+            editedItem.IsEditingCallbackEnabled = true;
             FocusHelper.Focus(editedItem);
+            if(raiseEvent)
+                editedItem.RaiseOnEdited();
             editedItem = null;
         }
     }

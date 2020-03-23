@@ -3,13 +3,14 @@
 	#region
 
 	using System.Collections.ObjectModel;
+    using System.ComponentModel;
 
-	#endregion
+    #endregion
 
-	/// <summary>
-	/// Model for testing
-	/// </summary>
-	public class Node
+    /// <summary>
+    /// Model for testing
+    /// </summary>
+    public class Node : INotifyPropertyChanged
 	{
 		#region Constructors and Destructors
 
@@ -27,6 +28,19 @@
         string name;
         public string Name { get { return name; } set { name = value; } }
         public bool IsExpandedValue { get; set; }
+		private bool _isEditingValue;
+
+		public event PropertyChangedEventHandler PropertyChanged;
+
+		public bool IsEditingValue 
+		{
+			get => _isEditingValue;
+			set
+			{
+				_isEditingValue = value;
+				PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsEditingValue)));
+			}
+		}
 		#endregion
 
 		#region Public Methods
